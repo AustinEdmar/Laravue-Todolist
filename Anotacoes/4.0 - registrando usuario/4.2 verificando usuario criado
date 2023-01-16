@@ -1,0 +1,100 @@
+1- vamos verificar o validade do token
+     Route::post('verify-email', [AuthController::class, 'verifyEmail']);
+    1.1 - vamos passa no controller e depois no authservice
+
+         public function verifyEmail (){
+      
+      $this->authService->verifyEmail();
+    }
+
+    1.2 - authService
+    public function verifyEmail()
+    {
+        dd('x');
+    }
+2 - vamos criar um request
+
+    php artisan make:request AuthEmailRequest
+
+ 2.1
+    public function authorize()
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array
+     */
+    public function rules()
+    {
+        return [
+            'token' => 'required|string',
+        ];
+    }
+
+3 - agora vamos injetar no controller
+
+public function verifyEmail (AuthEmailRequest $request)
+    {
+      $input = $request->validated();
+      
+     return $this->authService->verifyEmail($input['token']);
+    }
+    
+4 - voltamos no authService
+
+ public function verifyEmail(string $token)
+    {
+        //se o token existe vai buscar o usuario
+        $user = User::where('confirmation_token', $token)->first();
+
+        //se nao existir jogue um erro
+        if(empty($user)){
+            throw new VerifyEmailTokenInvalidException();
+        }
+        
+        // se confirma que existe vai ser null
+        $user->confirmation_token = null;
+
+        //pra saber quando o email foi verificado
+        $user->email_verified_at = now();
+
+        $user->save();
+
+        return $user;
+    }
+
+    
+5- exception
+    php artisan make:exception VerifyEmailTokenInvalidException
+ 5.1 
+ class VerifyEmailTokenInvalidException extends Exception
+{
+    protected $message = 'Token not valid.';
+
+    public function render()
+    {
+        return response()->json([
+            'error' => class_basename($this),
+            'message' => $this->getMessage(),
+        ], 400);
+    }
+}
+
+6- voltamos no authController vamos retornar o resource
+
+public function verifyEmail (AuthEmailRequest $request)
+    {
+      $input = $request->validated();
+      
+     $user = $this->authService->verifyEmail($input['token']);
+
+     return new UserResource($user);
+    }
+
+
+
+
+

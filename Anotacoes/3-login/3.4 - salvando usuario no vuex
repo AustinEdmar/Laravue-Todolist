@@ -1,0 +1,62 @@
+1- vamos adicionar os dados do user no vuex, com modulos
+
+    ### dentro de store/user/index.js
+
+    export default {
+        //pra reconhecer que estamos a usar modulos
+    namespaced: true,
+
+    state: () => ({
+        user: {},
+    }),
+
+    mutations: {
+        STORE_USER(state, user) {
+            state.user = user;
+        },
+    },
+    actions: {}
+}
+
+2 - agora na store do vuex chamo o modulo 
+    import Vue from 'vue'
+import Vuex from 'vuex'
+import user from '@/store/user/index.js' //aqui
+Vue.use(Vuex)
+
+export default new Vuex.Store({
+  state: {
+  },
+  getters: {
+  },
+  mutations: {
+  },
+  actions: {
+  },
+  modules: {
+    user, /// 2.1 aqui
+  }
+})
+
+3 - vou implemenat no component login
+
+ methods: {
+            // 1- metdo
+           login(){
+                const payload = {
+                    email: this.email,
+                    password: this.password
+                };
+                this.$axios.post('v1/login', payload).then((response) => {
+                   //quando a gente tiver acesso ao endpoint a gente vai salvar o token no 
+                   //cookie do browser
+                    const token = `${response.data.token_type} ${response.data.access_token}`;
+
+                    Cookie.set('todo_list_token', token, { expires: 30})
+
+                    3.1 // aqui estou comitando a mutations
+                    this.$store.commit('user/STORE_USER', response.data.data);
+                })
+           }
+        },
+

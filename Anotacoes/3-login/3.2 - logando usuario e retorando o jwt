@@ -1,0 +1,122 @@
+1-vamos indicar ao laravel que estamos usando o jwt
+
+# em confi/auth.php
+
+'defaults' => [
+        'guard' => 'api',// troquei web por api
+        'passwords' => 'users',
+    ],
+
+###
+'api' => [
+            'driver' => 'jwt',//token
+            'provider' => 'users',
+            'hash' => false,
+        ],
+
+2- no model User implemento e adiciono este metodos
+
+###class User extends Authenticatable implements JWTSubject
+
+###public function getJWTIdentifier()
+    {
+        return $this->getKey();
+    }
+
+    /**
+     * Return a key value array, containing any custom claims to be added to the JWT.
+     *
+     * @return array
+     */
+    public function getJWTCustomClaims()
+    {
+        return [];
+    }
+
+    3- no authController
+
+    public function login(AuthLoginRequest $request)
+    {
+        $input = $request->validated();
+        
+        //dd($input);
+    //passando metodo no parameto do login do authService 
+      return $this->authService->login($input['email'], $input['password']);
+    }
+
+    4- agora vou recebe-los
+######
+
+class AuthService 
+{
+    public function login(string $email, string $password)
+    {
+        $login = [
+            'email' => $email,
+            'password' => $password
+        ];
+        //se autenticado for diferente do token, se falhar retorna o token
+        if(!$token = auth()->attempt($login)){ // 1# quando der erro cai na exception
+            throw new LoginInvalidException();
+        }
+            return [
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+            ];
+    }
+}
+
+
+########
+
+    crie um exception
+    php artisan make:exception LoginInvalidException
+
+    class LoginInvalidException extends Exception
+{
+    public function render()
+    {
+        return response()->json([
+            //aqui pega o nome da class
+            'error' => class_basename($this),
+            'message' => 'Email and Password dont match.'
+        ], 401
+     );
+    }
+
+    5- vamos retornar os dados do usaurio que ja foi logado
+
+    #php artisan make:resource UserResource
+
+###
+ public function toArray($request)
+    {
+        return [
+                'id' => (integer)$this->id,
+                'first_name' => (string)$this->first_name,
+                'last_name' => (string)$this->last_name,
+                'email' => (string)$this->email,
+                'created_at' => (string)$this->created_at
+        ];
+    }
+
+    6-vamos passar no controler
+
+      public function login(AuthLoginRequest $request)
+    {
+        $input = $request->validated();
+        1-
+      $token = $this->authService->login($input['email'], $input['password']);
+        2- passando o use autenticado no molde com o token
+      return (new UserResource(auth()->user()))->additional($token);
+    }
+
+######## recapitulando #########
+o controller faz a validacao
+ 1- $input = $request->validated();
+
+ 2- o controller chama o service pra fazer a logica de negocio do login
+  $token = $this->authService->login($input['email'], $input['password']);
+ 
+ 3- e retorna o resource baseado no usuario que acabou de logar, passando os dados adicionais o token
+    return (new UserResource(auth()->user()))->additional($token);

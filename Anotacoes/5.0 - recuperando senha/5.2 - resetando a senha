@@ -1,0 +1,96 @@
+1 - vamos trocar a senha propriamente dita
+     Route::post('reset-password', [AuthController::class, 'forgotPassword']);
+
+     1.1 - mesma rotina
+
+        public function resetPassword()
+    {
+      $this->authService->resetPassword();
+    }
+
+    1.2 - 
+
+    public function resetPassword()
+    {
+        dd('x');
+    }
+
+2 - precisamos criar validations no AuthController entao vamos criar request
+        php artisan make:request AuthResetPasswordRequest 
+
+        public function rules()
+    {
+        return [
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|max:30|regex:/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).+$/', // uma letra pelo menos mauiscula
+            'token' => 'required|string', // pra validar o pedido de resetar senha, o token foi pasado via email
+        ];
+
+3 - vou injetar no AuthController
+    public function resetPassword(AuthResetPasswordRequest $request)
+    {
+      $input = $request->validated();
+      $this->authService->resetPassword($input['email'], $input['password'], $input['token']);
+    }
+
+4- vou  ao authService fazer a logica de resetar a senha, precisamos injectar os paramentos
+
+    public function resetPassword(string $email, string $password, string $token)
+    {
+        
+            //pegando a model e comparando email e token se pertencem aos mesmo registro
+        $passReset = PasswordReset::where('email', $email)->where('token', $token)->first();
+        
+        //se der erro
+        if(empty($passReset)){
+    5.0 - aqui
+            throw new ResetPasswordTokenInvalidException();
+
+        }
+            //ter a certeza que o usuario existe
+        $user = User::where('email', $email)->firstOrfail();
+
+        $user->password = bcrypt($password);
+
+        $user->save();
+        
+        //depois apago da tabela resetpassord
+       
+        PasswordReset::where('email', $email)->delete();
+
+        return '';
+
+
+      
+    }
+
+
+5 - vou criar uma exception se der erro
+    php artisan make:exception ResetPasswordTokenInvalidException 
+
+     protected $message = 'reset password not valid';
+
+    public function render()
+    {
+        return response()->json([
+            'error' => class_basename($this),
+            'message' => $this->getMessage(),
+        ], 400);
+    }
+
+6 - recapitulando no endpoint em forgot password envia token no email
+    {
+    "email": "paloma@gmail.com"
+}
+7 - pego este  token envio
+{
+    "email": "paloma@gmail.com",
+    "token": "NfjTsknPm393GupFsenq3DkHRJTZ04acGT0XgC8AtTKa7BJPu7CsXxXVWOKV",
+    "password": "Password3"
+}
+
+
+
+
+
+

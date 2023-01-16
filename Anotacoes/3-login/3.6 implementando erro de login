@@ -1,0 +1,115 @@
+1- aplicamos o catch
+
+.catch(() => {
+                    this.response.color = 'red';
+                    this.response.message = 'Ops! email ou senha invalido';
+
+                   console.log('meu erro')
+                })
+2 - no data
+// isso ira  no bind da :class do template html
+        data() {
+            return {
+               email: '',
+               password: '',
+               response: {
+                color: '',
+                message: ''
+               }
+            };
+
+3- o bind 
+ v-if="response.message"
+        :class="`rounded-sm-bg-${response.color}-100 p-4 mb-4`"
+        >
+        <h3 :class="`text-sm leading-5 font-medium text-${response.color}-800`">
+            {{response.message}}
+        </h3>
+
+        </div>
+4- vamos fazer um mapeamento para ver o ero se vem do backend
+
+crie um directorio em src utils/messages.js 
+
+export default{
+    ServerError: 'Ops! algo deu muit0 errado',
+    LoginInvalidException: 'Ops! email ou senha invalido..'
+}
+
+5- agora passe dentro do catch
+
+.catch((e) => {
+    import message from '@/utils/messages';
+
+    /// se nao encontrar o erro do servidor apresanta servererror
+                  //  const errorCode = e?.response?.data?.error || 'ServerError';
+                    this.response.color = 'red';
+                                            //messages.js
+                    this.response.message = message[errorCode];
+
+                   console.log('meu erro')
+                })
+
+6/ crie um metodo para remover o texto fixo do erro a cada response
+ resetResponse(){
+            this.response.color = '';
+            this.response.message = '';
+           }
+
+7- antes de chamar o ajax
+
+//antes de fazer a conexao ajax vou resetar o resonse
+              aqui///  this.resetResponse();
+
+
+                this.$axios.post('v1/login', payload).then((response) => {
+
+8- agora vamos criar um spinner, criei mais um objs no data
+
+ data() {
+            return {
+               email: '',
+               password: '',
+               response: {
+                color: '',
+                message: ''
+               },
+               spinner: {
+                    login: false,
+               }
+            };
+
+9 - executa-lo antes do ajax
+
+  this.resetResponse();
+                //vamos antes do ajax
+                this.spinner.login = true;
+
+                this.$axios.post('v1/login', payload).then((response) => {
+
+10 - se der erro para
+
+ }).catch((e) => {
+                    //se acontercer erro para o spinner
+                    this.spinner.login = false;
+
+11- vamos colocar o icone no botao
+ <button
+                    
+                    type="submit"
+                    
+                    class="flex items-center justify-center bg-blue-800 text-blue-200 font-medium text-sm focus:outline-none rounded-sm py-3 px-4 block w-full appearance-none leading-normal">
+                    
+                    <img 
+                    // quando for verdadeiro disabled
+                    :disabled="spinner.login"
+                    // se existir chama 
+                    v-if="spinner.login"
+                    src="@/assets/img/spinner.svg" 
+                   
+                    alt=""
+                    class="w-5 h-5 mr-2"
+                    >
+                    ENTRAR
+                </button>
+

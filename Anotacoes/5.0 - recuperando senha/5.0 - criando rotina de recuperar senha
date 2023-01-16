@@ -1,0 +1,85 @@
+1- vamos resetar senha do usuario, sao dois processos
+    1.1 - 1 - endpoint para disparar email notificando o usuario que iniciou este processo 
+    1.1 - 2 - para resetar a propria senha
+
+2 - vamos criar a rota
+    1 - Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
+
+3 - vou criar o metodo
+
+public function forgotPassword()
+    {
+      $this->authService->forgotPassword();
+    }
+
+4- criei o service
+
+    public function forgotPassword()
+    {
+        dd('x');
+
+5 - vamos criar um request, /// isso pra as validadcoes, exeception e pra os erros
+    php artisan make:request AuthForgotPasswordRequest
+
+    5.1- 
+    public function authorize()
+    {
+        return true;
+    }
+
+    /**
+     * Get the validation rules that apply to the request.
+     *
+     * @return array
+     */
+    public function rules()
+    {
+        return [
+            'email' => 'required|email'
+        ];
+    }
+6 - vamos injectar no AuthController no metodo forgotPassword
+    // passei no request as validadcoes
+    public function forgotPassword(AuthForgotPasswordRequest $request)
+    {
+      $input = $request->validated();
+    //estou passando como parametro no authService
+      return $this->authService->forgotPassword($input['email']);
+    }
+
+7 - vou em authService 
+                ///// parametro: ($input['email']);
+public function forgotPassword(string $email)
+    {
+            // se existe o laravel para, sem fazer checagem
+        $user = User::where('email', $email)->firstOrFail();
+
+        $token = Str::random(60);
+
+        PasswordReset::create([
+            'email' => $user->email,
+            'token' => $token,
+            'created_at' => now()
+        ]);
+
+        return '';
+    }
+
+    8 - lembrando que ha a migrations password_reset ele pegar automaticamente
+    neste model, se nao poderia fazer igual  protected $table = 'todos_tasks';
+
+<?php
+
+namespace App;
+
+use Illuminate\Database\Eloquent\Model;
+
+class PasswordReset extends Model
+{
+    // aqui e pra nao dar erro, o laravel vai querer actualizar o campo
+    const UPDATED_AT = null;
+    
+    protected $fillable =[
+            'email', 'token'
+    ];
+}

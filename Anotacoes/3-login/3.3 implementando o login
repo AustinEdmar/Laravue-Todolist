@@ -1,0 +1,73 @@
+1- dentro component login
+
+
+<script>
+    import LoginMenu from '@/components/Auth/LoginMenu';
+   import Cookie from 'js-cookie';
+
+    export default {
+        name: 'LoginComponent',
+
+        components: {
+            LoginMenu,
+            
+        },
+
+        data() {
+            return {
+               email: '',
+               password: ''
+            };
+        },
+
+        methods: {
+            // 1- metdo
+           login(){
+                const payload = {
+                    email: this.email,
+                    password: this.password
+                };
+                //////1.1######
+                this.$axios.post('v1/login', payload).then((response) => {
+                   //quando a gente tiver acesso ao endpoint a gente vai salvar o token no 
+                   //cookie do browser
+                   ////////1.2####
+                    const token = `${response.data.token_type} ${response.data.access_token}`;
+                    Cookie.set('todo_list_token', token, { expires: 30})
+                })
+           }
+        },
+    };
+</script>
+
+### 2 - disparar um evento do metodo
+<button
+                     @click.stop.prevent="login()"
+                    type="submit"
+                    
+                    class="flex items-center justify-center bg-blue-800 text-blue-200 font-medium text-sm focus:outline-none rounded-sm py-3 px-4 block w-full appearance-none leading-normal">
+                    
+
+                    ENTRAR
+ </button>
+
+ 3 - vamos criar o axios e tambem o cookie para guardar o token
+
+ import axios from 'axios';
+import Vue from 'vue';
+import Cookie from '@/service/cookie';
+
+Vue.prototype.$axios = axios;
+
+axios.defaults.baseURL = 'https://api:8890/api';
+axios.defaults.headers.common['Content-Type'] = 'application/json';
+axios.defaults.headers.common['Accept'] = 'application/json';
+axios.interceptors.request.use(function(config) {
+    const token = Cookie.getToken();
+
+    if (token) {
+        config.headers.common['Authorization'] = token;
+    }
+
+    return config;
+});

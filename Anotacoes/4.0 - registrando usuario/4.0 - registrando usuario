@@ -1,0 +1,97 @@
+1- vamos criar a rota 
+
+     Route::post('register', [AuthController::class, 'register']);
+
+2- vamos criar o metodo
+
+    public function register()
+    {
+      $this->authService->register();
+    }
+
+4- vamor crir o metodo de authService
+
+    public function register()
+    {
+        dd('x');
+    }
+5- vamos criar um request
+
+    php artisan make:request AuthRegisterRequest
+    5.1 - dentro
+     public function rules()
+    {
+        return [
+            'first_name' => 'required|string',
+            'last_name' => 'string|nullable',
+            'email' => 'required|email',
+            'password' => 'required|string|min:8|max:30|regex:/^(?=.*[A-Z])(?=.*[a-z])(?=.*\d).+$/', // uma letra pelo menos mauiscula
+            
+
+        ];
+    }
+6 - vamos injectar dentro do AuthController
+    6.1 criei este metodo
+
+ public function register(AuthRegisterRequest $request)
+    {
+      $input = $request->validated();
+ 
+     
+      //se o last name nao tiver nada coloque vazio
+     $user = $this->authService->register($input['first_name'], $input['last_name'] ?? '',$input['email'], $input['password']);
+     
+     // vai retornar os campos do resource com esses
+     return new UserResource($user);
+    }
+    ######exepmplo aqui#####
+    
+    public function toArray($request)
+    {
+        return [
+                'id' => (integer)$this->id,
+                'first_name' => (string)$this->first_name,
+                'last_name' => (string)$this->last_name,
+                'email' => (string)$this->email,
+                'created_at' => (string)$this->created_at
+        ];
+    }
+    ########fim exemplo#######
+
+
+
+7 - precisamos pasaar para o resource, antes disso crio uma exception
+    7.1 - php artisan make:exception UserHasBeenTaken
+    class UserHasBeenTaken extends Exception
+{
+    protected $message = 'User has Been taken.';
+
+    public function render()
+    {
+        return response()->json([
+            'error' => class_basename($this),
+            'message' => $this->getMessage(),
+        ], 400);
+    }
+}
+    7.2 - 
+    authService->register
+
+    public function register(string $firstName, string $lastName, string $email, string $password)
+    {
+        $user = User::where('email', $email)->exists();
+        if(!empty($user)){
+            throw new UserHasBeenTaken();
+        }
+        // se for verdade, se for vazia cria uma string de 10 caracterer
+        $userPassword = bcrypt($password ?? Str::random(10));
+        $user = User::create([
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+            'email' => $email,
+            'password' => $userPassword,
+            'confirmation_token' => Str::random(60), //ira gerar uma string pro token
+        ]);
+
+        return $user;
+    }

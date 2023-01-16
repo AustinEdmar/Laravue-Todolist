@@ -1,0 +1,106 @@
+1 - a primeira fase e o envio de notificacao pro usuario
+    1.1 - vamos criar um templete mail,um evento e listener igual quando criamos pra registrar usuario
+    1.2 - php artisan make:event ForgotPassword
+    1.3 - php artisan make:listener SendForgotPasswordNotification
+
+2 - vamos adicionar o evento dentro de authService no metodo forgotPassword
+         public function forgotPassword(string $email)
+    {
+            // se existe o laravel para, sem fazer checagem
+        $user = User::where('email', $email)->firstOrFail();
+        
+        $token = Str::random(60);
+
+        PasswordReset::create([
+            'email' => $user->email,
+            'token' => $token,
+            'created_at' => now()
+        ]);
+
+        // nos precisamos enviar o token via email
+        event(new ForgotPassword($user, $token));
+
+        return '';
+    
+3 - agora vamos no evento passar o usuario e token Events/ForgotPassword.php
+            
+    public $user;
+
+    public $token;
+
+    public function __construct(User $user, string $token)
+    {
+        $this->user = $user;
+        $this->token = $token;
+    }
+
+4 - agora vamos no listener e injectar o evento ForgotPassword
+
+
+     // o event tem __construct(User $user, string $token) com parametro
+    public function handle(ForgotPassword $event)
+    {
+        // e chamo a classe mail, pego o email do usuario actual, envio e passo template do mail, injecto token e user
+        Mail::to($event->user->email)->send(new ForgotPasswordMail($event->user, $event->token ));
+    }
+
+5 - agora vou no ForgotPasswordMail injectar o user e token
+
+
+     public $user;
+
+     public $token;
+
+    public function __construct(User $user, string $token)
+    {
+        $this->user = $user;
+        $this->token = $token;
+    }
+
+    /**
+     * Build the message.
+     *
+     * @return $this
+     */
+    public function build()
+    {
+        return $this->view('emails.forgot_password')
+            ->subject('Alteracao de senha')
+            ->with([
+                'resetPasswordLink' => config('app.url') . '/recuperar-senha?token=' .$this->token
+            ]);
+    }
+
+    5.1 - criar emails.forgot_password ja criei o templete
+
+    7.0 - precisamos activar o evento em provider EventServiceProvider
+         protected $listen = [
+        UserRegistered::class => [
+            SendWelcomeNotification::class,
+        ],
+        ForgotPassword::class => [ //evento 
+            SendForgotPasswordNotification::class // listener
+        ]
+    ];
+
+    6 - recapitulando
+    6.1 - criei um evento ForgotPassword, e nele passamos
+        public function __construct(User $user, string $token)
+    {
+        $this->user = $user;
+        $this->token = $token;
+    }
+    6.2 - depois passamos pro listener e injectamos o evento no parametro, que vai disparar a classe mail
+        pra disparar este email
+
+
+
+
+
+
+
+
+
+
+
+

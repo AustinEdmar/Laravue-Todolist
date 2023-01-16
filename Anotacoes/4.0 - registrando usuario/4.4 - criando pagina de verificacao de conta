@@ -1,0 +1,86 @@
+1- criamos esta rota e o verifyEmail
+   1.1 - import VerifyEmail from '@/views/VerifyEmail'
+
+{
+        path: '/verificar-email', component: LayoutAuth,
+        children: [
+            { path: '', name: 'verifyEmail', component: VerifyEmail },
+        ],
+    }, 
+
+2 - criamos um data
+
+export default {
+        name: 'VerifyEmail',
+
+        data(){
+            return{
+                token: '',
+                response: {
+                    color: '',
+                    message: ''
+                },
+                spinner: {
+                    verify_email: false
+                }
+            }
+        }
+    
+3 - criamos o dados do templet
+
+<template>
+  <div>
+    <img 
+        v-if="spinner.verify_email"
+        src="@/assets/img/spinner.svg"
+        class="inline-flex w-5 h-5"
+         >
+         <div
+         v-if="response.message"
+         :class="`rounded-sm bg-${response.color}-100 p-4 mb-4`" 
+         >
+         <h3 :class="`text-sm leading-5 font-medium text-${response.color}-800`">
+                {{ response.message }}
+         </h3>
+
+         </div>
+  </div>
+</template>
+
+4 - criamos um hooks e metodo para o token na rota
+
+created(){
+        //assim que carregar vamos pegar o token da url, se nao haver mostre vazio
+            this.token = this.$route?.query?.token || '';
+        // e rodamos esta funcao
+
+            this.verifyEmail();
+        },
+
+        methods: {
+            verifyEmail(){
+                // nao foi necessario criar um payload so ha um atributo token
+                this.$axios.post('v1/verify-email', { token: this.token }).then(() => {
+
+                }).catch((e) => {
+                    const errorCode = e?.response?.data?.error || 'ServerError';
+                    this.response.color = 'red';
+                    this.response.message = messages[errorCode];
+                })
+            }
+        }
+    
+    5 - como evitar o usuario acessar a rota se nao tiver o token
+
+    beforeRouteEnter (to, from, next) {
+            // to - a rota que ta indo
+            // from - de onde veio
+            // next - seguir o processo
+
+            if(!to?.query?.token){
+                //se a rota que to indo nao tiver token, va directo ao login
+                next( { name: 'login'});
+            }
+            // se nao prossiga
+            next();
+        },

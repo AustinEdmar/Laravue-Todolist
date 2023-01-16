@@ -1,0 +1,113 @@
+1- importamos o vue-validate
+ ## import { ValidationObserver , ValidationProvider } from 'vee-validate';
+### registramos no component
+#### vou colocar *passo
+
+ <script>
+    import LoginMenu from '@/components/Auth/LoginMenu';
+   import Cookie from 'js-cookie';
+
+   *passo: 1 * import { ValidationObserver , ValidationProvider } from 'vee-validate';
+
+    export default {
+        name: 'LoginComponent',
+
+        components: {
+            LoginMenu,
+   *passo: 2 *
+            ValidationObserver, //observa o formulario como um todo
+            ValidationProvider //vai validar cada input
+            
+        },
+
+        data() {
+            return {
+               email: '',
+               password: ''
+            };
+        },
+
+        methods: {
+    *passo: 3: coloquei num fun async para validar o error *
+          async login(){
+    *passo: 3.1: nota: o ref no html para forcar a validation, vai
+    acessar este component que tem o loginForm*
+
+           const validator = await this.$refs.loginForm.validate()
+     *passo: 3.2 se nao vailidar nao avanca e se validar continue*
+            if(!validator) {return}
+                 const payload = {
+                    email: this.email,
+                    password: this.password
+                };
+                this.$axios.post('v1/login', payload).then((response) => {
+                   //quando a gente tiver acesso ao endpoint a gente vai salvar o token no 
+                   //cookie do browser
+                    const token = `${response.data.token_type} ${response.data.access_token}`;
+
+                    Cookie.set('todo_list_token', token, { expires: 30})
+
+                    this.$store.commit('user/STORE_USER', response.data.data);
+                }) 
+           }
+        },
+    };
+</script>
+
+2- no template
+
+  ValidationObserver, //observa o formulario como um todo
+            ValidationProvider //vai validar cada input
+
+
+<template>
+    <div style="height: 300px;" >
+        <LoginMenu />
+*passo: 
+        <ValidationObserver
+            ref="loginForm"
+            tag="form"
+            @submit.stop.prevent="login"
+        >
+            <div class="grid gap-2">
+               <ValidationProvider 
+                v-slot="{errors }"
+                 rules="required|email"
+                 name="email"
+               > 
+               
+                    <input
+                        v-model="email"
+                        type="text"
+                        placeholder="Digite seu e-mail"
+                        class="bg-gray-900 placeholder-gray-700 text-gray-500 font-light border border-gray-900 focus:outline-none focus:border-blue-800 rounded-sm py-3 px-4 block w-full appearance-none leading-normal"
+                    >
+                    <div 
+                        v-if="!!errors[0]"
+                        class="tex-red-500 text-sm mb-2">
+                        {{errors[0]}}
+
+                    </div>
+                    
+                </ValidationProvider>
+
+             <ValidationProvider 
+             v-slot="{errors }"
+             rules="required"
+             name="password"
+                > 
+                    <input
+                        v-model="password"
+                        type="password"
+                        placeholder="Digite sua senha"
+                        class="bg-gray-900 placeholder-gray-700 text-gray-500 font-light border border-gray-900 focus:outline-none focus:border-blue-800 rounded-sm py-3 px-4 block w-full appearance-none leading-normal"
+                    >
+                    <div 
+                        v-if="!!errors[0]"
+                        class="tex-red-500 text-sm mb-2">
+                        {{errors[0]}}
+
+                    </div>
+                </ValidationProvider>
+                  
+                <button
